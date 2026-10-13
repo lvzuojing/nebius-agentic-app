@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Nebius Agentic Research</title>
+<style>
+  :root{--bg:#0a0e1a;--panel:#121a2e;--line:#243049;--txt:#e8eefc;--muted:#93a1c4;
+    --nv:#76b900;--acc:#39d0ff;--plan:#ffb454;--tool:#7c5cff;--ans:#36e0c8}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:radial-gradient(1100px 500px at 80% -10%,#15233f,#0a0e1a);color:var(--txt);min-height:100vh}
+  .wrap{max-width:880px;margin:0 auto;padding:26px 16px 60px}
+  h1{font-size:20px;margin:0} .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .badge{display:inline-block;background:#0f1a30;border:1px solid var(--line);color:var(--nv);
+    padding:3px 10px;border-radius:999px;font-size:12px;margin-left:8px;vertical-align:middle}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:16px}
+  .bar{display:flex;gap:10px}
+  input{flex:1;background:#0e1626;border:1px solid var(--line);color:var(--txt);border-radius:10px;
+    padding:12px 14px;font-size:15px;outline:none} input:focus{border-color:var(--acc)}
+  button{background:linear-gradient(135deg,var(--nv),var(--acc));border:0;color:#06101f;font-weight:700;
+    padding:0 18px;border-radius:10px;cursor:pointer}
+  .steps{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+  .step{border-left:3px solid var(--line);padding:6px 12px;font-size:13.5px;line-height:1.5;background:#0e1626;border-radius:0 8px 8px 0}
+  .step.plan{border-color:var(--plan)} .step.sub{border-color:var(--acc)} .step.tool{border-color:var(--tool)}
+  .step.answer{border-color:var(--ans)} .step.write{border-color:var(--nv)}
+  .tag{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+  .report{white-space:pre-wrap;font-size:14px;line-height:1.6;margin-top:10px}
+  .note{color:var(--muted);font-size:12px;margin-top:14px;text-align:center}
+  code{background:#0c1730;padding:2px 6px;border-radius:6px;color:var(--acc);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Nebius Agentic Research <span class="badge">NVIDIA models × Nebius</span></h1>
+  <div class="sub">Planner → 多个 Researcher（工具调用循环）→ Writer。可离线 mock，也可接 Nebius + NVIDIA 模型。</div>
+  <div class="card">
+    <div class="bar">
+      <input id="inp" placeholder="输入研究主题，例如：小团队值得上 agentic 架构吗？" />
+      <button id="go">研究</button>
+    </div>
+    <div class="steps" id="steps"></div>
+    <div class="report" id="report"></div>
+  </div>
+  <div class="note">后端：<code>app.py</code> 调 <code>agent.py</code> 的多智能体编排。设置 <code>NEBIUS_API_KEY</code> 后自动切换真实 NVIDIA 模型。</div>
+</div>
+<script>
+const stepsEl=document.getElementById('steps'), repEl=document.getElementById('report'), inp=document.getElementById('inp'), go=document.getElementById('go');
+const LABEL={plan:'PLAN',sub:'RESEARCHER',tool:'TOOL',answer:'ANSWER',write:'WRITE'};
+function addStep(s){
+  const d=document.createElement('div'); d.className='step '+s.role;
+  let body = s.text || (s.tool?`⚙️ ${s.tool}(${JSON.stringify(s.args)}) → ${s.result}`:'');
+  d.innerHTML=`<div class="tag">${LABEL[s.role]||s.role}</div>`+body;
+  stepsEl.appendChild(d); stepsEl.scrollTop=stepsEl.scrollHeight;
+}
+async function run(){
+  const t=inp.value.trim(); if(!t) return;
+  inp.value=''; stepsEl.innerHTML=''; repEl.textContent=''; go.disabled=true;
+  const r=await fetch('/research',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({topic:t})});
+  const d=await r.json();
+  (d.steps||[]).forEach(addStep);
+  repEl.textContent=d.report||'';
+  go.disabled=false;
+}
+go.onclick=run; inp.addEventListener('keydown',e=>{if(e.key==='Enter')run();});
+</script>
+</body>
+</html>

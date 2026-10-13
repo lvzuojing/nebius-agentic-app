@@ -1,0 +1,3 @@
+# Real mode only (Nebius OpenAI-compatible client -> NVIDIA model).
+# Mock/offline mode needs nothing beyond the stdlib.
+openai>=1.0
